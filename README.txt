@@ -2,7 +2,7 @@ WHERE HE AT?
 
 Find Reh Dogg Before Time Runs Out.
 
-Open index.html in a browser to play the complete 5-stage hidden-object game.
+Open index.html in a browser to play the complete 10-stage hidden-object game.
 
 Included:
 - Startup intro video with skip
