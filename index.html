@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>WHERE HE AT?</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{color-scheme:dark;--gold:#ffd23f;--green:#32e875;--red:#ff3f5f}
+html,body{width:100%;height:100%}
+body{margin:0;background:#050914;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+button{font:inherit;cursor:pointer}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;justify-content:center;align-items:center;gap:14px;z-index:30;text-align:center;padding:22px;background:radial-gradient(circle at 50% 40%,#24304a 0,#0b1020 48%,#030712 100%)}
+.screen.active{display:flex}
+h1{margin:0;font-size:clamp(44px,8vw,90px);line-height:.95;letter-spacing:0;text-shadow:0 0 18px #000}
+h2{margin:0 0 14px;color:var(--gold);font-size:clamp(19px,3.2vw,34px);letter-spacing:0}
+p{margin:0;max-width:760px;font-size:clamp(17px,2.5vw,24px);line-height:1.35}
+.btn-row{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin-top:8px}
+.btn{min-width:164px;border:0;border-radius:8px;padding:14px 22px;background:var(--gold);color:#111;font-size:20px;font-weight:900;box-shadow:0 6px 0 #8a5b00}
+.btn.secondary{background:#fff;color:#111;box-shadow:0 6px 0 #777}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #8a5b00}
+.btn.secondary:active{box-shadow:0 2px 0 #777}
+#intro{z-index:50;background:#000;padding:0}
+#introVideo{width:100%;height:100%;object-fit:contain;background:#000}
+#introStart{position:fixed;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px;background:radial-gradient(circle at 50% 40%,#22304a 0,#030712 74%);z-index:56}
+#skipIntro{position:fixed;right:18px;bottom:18px;z-index:55;display:none}
+#howTo ul{margin:2px 0 0;padding:0;list-style:none;font-size:clamp(18px,2.8vw,27px);line-height:1.7;font-weight:800}
+#game{display:none;width:100vw;height:100vh;background:#0b1020}
+#view{width:100%;height:100%;overflow:auto;cursor:grab;touch-action:none;background:#10131d}
+#view.dragging{cursor:grabbing}
+#scene{position:relative;overflow:hidden;background:#10131d}
+#bg{position:absolute;left:0;top:0;display:block;user-select:none;pointer-events:none;max-width:none}
+.reh{position:absolute;z-index:4;cursor:pointer;filter:drop-shadow(0 4px 4px #000c);opacity:.96;transform-origin:50% 100%;object-fit:contain}
+.reh.found{outline:4px solid var(--green);outline-offset:3px;border-radius:8px;filter:drop-shadow(0 0 16px var(--green));pointer-events:none}
+#hud{position:fixed;top:10px;left:10px;right:10px;display:none;align-items:flex-start;justify-content:space-between;gap:8px;z-index:12;pointer-events:none}
+.box{min-height:42px;display:flex;align-items:center;background:#000c;border:1px solid #ffffff55;border-radius:8px;padding:9px 12px;font-size:clamp(13px,2.1vw,18px);font-weight:900;text-shadow:0 0 8px #000}
+#stageLabel{max-width:38vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#controls{position:fixed;right:14px;bottom:14px;display:none;grid-template-columns:56px 56px;gap:8px;z-index:14}
+.ctrl{width:56px;height:50px;background:#000d;color:#fff;border:1px solid #ffffff66;border-radius:8px;font-size:22px;font-weight:900}
+.ctrl.wide{grid-column:span 2;width:120px;font-size:17px}
+#clear h1,#win h1{color:var(--green)}
+#gameOver h1{color:var(--red)}
+#pause h1{font-size:clamp(38px,7vw,72px)}
+@media (max-width:620px){
+  #hud{display:none!important}
+  .box{font-size:13px;padding:7px 9px}
+  #controls{right:10px;bottom:10px}
+  .btn{min-width:142px;font-size:18px}
+}
+</style>
+</head>
+<body>
+<section id="intro" class="screen active" aria-label="Intro">
+  <video id="introVideo" src="assets/video/intro.mp4" playsinline preload="auto"></video>
+  <div id="introStart">
+    <h1>WHERE HE AT?</h1>
+    <h2>Find Reh Dogg Before Time Runs Out</h2>
+    <button class="btn" data-action="startIntro">START</button>
+  </div>
+  <button id="skipIntro" class="btn" data-action="skipIntro">SKIP INTRO</button>
+</section>
+
+<section id="menu" class="screen" aria-label="Main Menu">
+  <h1>WHERE HE AT?</h1>
+  <h2>Find Reh Dogg Before Time Runs Out</h2>
+  <div class="btn-row">
+    <button class="btn" data-action="play">PLAY</button>
+    <button class="btn secondary" data-action="how">HOW TO PLAY</button>
+  </div>
+</section>
+
+<section id="howTo" class="screen" aria-label="How To Play">
+  <h1>WHERE HE AT?</h1>
+  <h2>Find Reh Dogg Before Time Runs Out</h2>
+  <ul>
+    <li>Find hidden Reh Dogg</li>
+    <li>Wrong clicks cost time</li>
+    <li>Use zoom and pan</li>
+    <li>Beat all 10 stages</li>
+  </ul>
+  <div class="btn-row">
+    <button class="btn" data-action="play">PLAY</button>
+    <button class="btn secondary" data-action="menu">MENU</button>
+  </div>
+</section>
+
+<main id="game" aria-label="Game">
+  <div id="view">
+    <div id="scene">
+      <img id="bg" alt="stage scene" draggable="false">
+    </div>
+  </div>
+</main>
+
+<div id="hud">
+  <div class="box">Stage <span id="stageNumber">1</span>/<span id="stageTotal">10</span></div>
+  <div class="box" id="stageLabel">THE BLOCK</div>
+  <div class="box">Found <span id="foundCount">0</span>/<span id="targetCount">10</span></div>
+  <div class="box">Time: <span id="timeText">120</span></div>
+</div>
+
+<div id="controls" aria-label="Controls">
+  <button class="ctrl" data-action="zoomIn" title="Zoom in">+</button>
+  <button class="ctrl" data-action="zoomOut" title="Zoom out">-</button>
+  <button class="ctrl wide" data-action="hint">HINT</button>
+  <button class="ctrl wide" data-action="pause">PAUSE</button>
+</div>
+
+<section id="clear" class="screen" aria-label="Stage Clear">
+  <h1>YOU FOUND THEM!</h1>
+  <p id="clearText">Stage clear.</p>
+  <button class="btn" data-action="next">NEXT STAGE</button>
+</section>
+
+<section id="gameOver" class="screen" aria-label="Game Over">
+  <h1>GAME OVER</h1>
+  <p>He got away.</p>
+  <div class="btn-row">
+    <button class="btn" data-action="retry">RETRY</button>
+    <button class="btn secondary" data-action="menu">MENU</button>
+  </div>
+</section>
+
+<section id="win" class="screen" aria-label="Final Win">
+  <h1>YOU FOUND THEM ALL!</h1>
+  <p>Reh Dogg could not hide from you.</p>
+  <div class="btn-row">
+    <button class="btn" data-action="playAgain">PLAY AGAIN</button>
+    <button class="btn secondary" data-action="menu">MENU</button>
+  </div>
+</section>
+
+<section id="pause" class="screen" aria-label="Pause Menu">
+  <h1>PAUSED</h1>
+  <div class="btn-row">
+    <button class="btn" data-action="resume">RESUME</button>
+    <button class="btn secondary" data-action="menu">MENU</button>
+  </div>
+</section>
+
+<script>
+const stages=[
+  {
+    name:'THE BLOCK',file:'assets/scenes/stage1_block.png',time:180,scale:1.55,size:74,
+    targets:[
+      {x:78,y:210,sz:70},{x:318,y:368,sz:74},{x:572,y:178,sz:72},{x:884,y:332,sz:76},{x:1218,y:224,sz:70},
+      {x:170,y:686,sz:78},{x:488,y:808,sz:72},{x:768,y:612,sz:75},{x:1086,y:784,sz:73},{x:1396,y:640,sz:70}
+    ]
+  },
+  {
+    name:'OCEAN VIEW BEACH',file:'assets/scenes/stage2_beach.png',time:215,scale:1.68,size:66,
+    targets:[
+      {x:58,y:176,sz:64},{x:216,y:326,sz:68},{x:394,y:228,sz:62},{x:586,y:394,sz:66},{x:780,y:184,sz:64},
+      {x:960,y:346,sz:70},{x:1164,y:246,sz:63},{x:1368,y:402,sz:67},{x:126,y:680,sz:70},{x:332,y:812,sz:63},
+      {x:548,y:610,sz:66},{x:820,y:844,sz:62},{x:1098,y:666,sz:65},{x:1410,y:796,sz:62}
+    ]
+  },
+  {
+    name:'ARENA MADNESS',file:'assets/scenes/stage3_arena.png',time:240,scale:1.82,size:60,
+    targets:[
+      {x:72,y:150,sz:58},{x:238,y:312,sz:62},{x:408,y:206,sz:56},{x:574,y:398,sz:60},{x:746,y:156,sz:64},
+      {x:912,y:326,sz:58},{x:1080,y:220,sz:61},{x:1260,y:388,sz:56},{x:1428,y:176,sz:59},{x:128,y:706,sz:64},
+      {x:320,y:838,sz:58},{x:548,y:626,sz:60},{x:804,y:850,sz:56},{x:1078,y:670,sz:62},{x:1358,y:820,sz:56}
+    ]
+  },
+  {
+    name:'CARNIVAL CHAOS',file:'assets/scenes/stage4_carnival.png',time:275,scale:1.96,size:53,
+    targets:[
+      {x:48,y:118,sz:50},{x:138,y:302,sz:55},{x:230,y:190,sz:48},{x:326,y:420,sz:54},{x:424,y:146,sz:52},
+      {x:528,y:338,sz:49},{x:632,y:238,sz:56},{x:736,y:450,sz:50},{x:840,y:126,sz:53},{x:946,y:312,sz:48},
+      {x:1052,y:206,sz:55},{x:1158,y:424,sz:51},{x:1266,y:156,sz:50},{x:1372,y:352,sz:54},{x:1454,y:248,sz:48},
+      {x:112,y:792,sz:58},{x:654,y:830,sz:49},{x:1228,y:760,sz:52}
+    ]
+  },
+  {
+    name:'RDGP EXPO',file:'assets/scenes/stage5_expo.png',time:315,scale:2.12,size:47,
+    targets:[
+      {x:42,y:104,sz:44},{x:118,y:292,sz:50},{x:196,y:174,sz:42},{x:276,y:430,sz:48},{x:358,y:238,sz:45},
+      {x:442,y:116,sz:52},{x:526,y:340,sz:43},{x:610,y:210,sz:47},{x:696,y:452,sz:42},{x:782,y:146,sz:51},
+      {x:870,y:318,sz:44},{x:958,y:198,sz:49},{x:1046,y:420,sz:42},{x:1134,y:128,sz:50},{x:1220,y:278,sz:45},
+      {x:1304,y:392,sz:43},{x:1386,y:182,sz:48},{x:1462,y:330,sz:42},{x:208,y:812,sz:52},{x:1186,y:806,sz:44}
+    ]
+  },
+  {
+    name:'THE BLOCK - HARD MODE',file:'assets/scenes/stage6_block_hard.png',time:300,scale:2.18,size:44,
+    targets:[
+      {x:38,y:96,sz:46},{x:118,y:312,sz:42},{x:208,y:188,sz:40},{x:296,y:466,sz:44},{x:386,y:258,sz:38},
+      {x:476,y:124,sz:45},{x:566,y:368,sz:39},{x:656,y:214,sz:42},{x:746,y:506,sz:38},{x:836,y:148,sz:44},
+      {x:926,y:332,sz:40},{x:1016,y:220,sz:43},{x:1106,y:472,sz:38},{x:1196,y:102,sz:45},{x:1286,y:288,sz:39},
+      {x:1376,y:420,sz:42},{x:1462,y:174,sz:38},{x:72,y:774,sz:46},{x:308,y:852,sz:41},{x:596,y:710,sz:44},
+      {x:912,y:870,sz:39},{x:1278,y:744,sz:42}
+    ]
+  },
+  {
+    name:'BEACH CROWD HUNT',file:'assets/scenes/stage7_beach_crowd.png',time:330,scale:2.24,size:42,
+    targets:[
+      {x:42,y:118,sz:42},{x:106,y:386,sz:39},{x:174,y:218,sz:44},{x:248,y:526,sz:38},{x:326,y:146,sz:41},
+      {x:408,y:344,sz:37},{x:490,y:250,sz:43},{x:574,y:474,sz:38},{x:660,y:104,sz:42},{x:744,y:312,sz:37},
+      {x:828,y:198,sz:41},{x:912,y:520,sz:38},{x:996,y:136,sz:44},{x:1080,y:370,sz:39},{x:1164,y:244,sz:42},
+      {x:1248,y:500,sz:37},{x:1332,y:166,sz:41},{x:1414,y:328,sz:38},{x:1474,y:438,sz:37},{x:88,y:830,sz:44},
+      {x:284,y:704,sz:40},{x:516,y:874,sz:37},{x:832,y:724,sz:42},{x:1192,y:862,sz:38}
+    ]
+  },
+  {
+    name:'ARENA FINAL SEARCH',file:'assets/scenes/stage8_arena_final.png',time:360,scale:2.3,size:40,
+    targets:[
+      {x:30,y:86,sz:40},{x:88,y:294,sz:37},{x:152,y:168,sz:42},{x:220,y:444,sz:36},{x:292,y:236,sz:39},
+      {x:366,y:118,sz:35},{x:442,y:352,sz:41},{x:520,y:206,sz:36},{x:598,y:492,sz:39},{x:676,y:144,sz:35},
+      {x:754,y:320,sz:40},{x:832,y:224,sz:37},{x:910,y:464,sz:35},{x:988,y:104,sz:42},{x:1066,y:292,sz:36},
+      {x:1144,y:180,sz:39},{x:1222,y:428,sz:35},{x:1300,y:256,sz:38},{x:1378,y:120,sz:41},{x:1452,y:362,sz:35},
+      {x:64,y:828,sz:40},{x:238,y:700,sz:36},{x:438,y:872,sz:38},{x:690,y:676,sz:35},{x:956,y:854,sz:39},
+      {x:1248,y:714,sz:35}
+    ]
+  },
+  {
+    name:'CARNIVAL NIGHTMARE',file:'assets/scenes/stage9_carnival_nightmare.png',time:390,scale:2.36,size:38,
+    targets:[
+      {x:28,y:74,sz:38},{x:82,y:242,sz:35},{x:140,y:134,sz:40},{x:202,y:390,sz:34},{x:268,y:210,sz:37},
+      {x:336,y:102,sz:33},{x:406,y:318,sz:39},{x:478,y:174,sz:34},{x:550,y:438,sz:37},{x:622,y:126,sz:33},
+      {x:694,y:286,sz:38},{x:766,y:198,sz:34},{x:838,y:462,sz:36},{x:910,y:82,sz:40},{x:982,y:252,sz:33},
+      {x:1054,y:154,sz:37},{x:1126,y:410,sz:34},{x:1198,y:226,sz:36},{x:1270,y:112,sz:39},{x:1342,y:338,sz:33},
+      {x:1414,y:188,sz:37},{x:1480,y:458,sz:33},{x:58,y:812,sz:39},{x:232,y:702,sz:34},{x:420,y:872,sz:36},
+      {x:658,y:728,sz:33},{x:946,y:850,sz:37},{x:1252,y:748,sz:34}
+    ]
+  },
+  {
+    name:'RDGP EXPO FINAL CHALLENGE',file:'assets/scenes/stage10_expo_final.png',time:420,scale:2.45,size:36,
+    targets:[
+      {x:24,y:62,sz:36},{x:72,y:220,sz:34},{x:124,y:122,sz:38},{x:180,y:364,sz:32},{x:240,y:194,sz:35},
+      {x:302,y:82,sz:31},{x:366,y:298,sz:37},{x:432,y:156,sz:32},{x:498,y:420,sz:35},{x:566,y:106,sz:31},
+      {x:634,y:264,sz:36},{x:702,y:174,sz:33},{x:770,y:454,sz:31},{x:838,y:70,sz:38},{x:906,y:240,sz:32},
+      {x:974,y:136,sz:35},{x:1042,y:392,sz:31},{x:1110,y:214,sz:34},{x:1178,y:98,sz:37},{x:1246,y:318,sz:31},
+      {x:1314,y:166,sz:35},{x:1382,y:430,sz:32},{x:1450,y:252,sz:31},{x:58,y:838,sz:38},{x:204,y:704,sz:33},
+      {x:374,y:886,sz:35},{x:592,y:744,sz:31},{x:828,y:870,sz:34},{x:1086,y:706,sz:32},{x:1328,y:846,sz:31}
+    ]
+  }
+];
+
+const $=id=>document.getElementById(id);
+const screens=['intro','menu','howTo','clear','gameOver','win','pause'].map($);
+const game=$('game'),hud=$('hud'),controls=$('controls'),view=$('view'),scene=$('scene'),bg=$('bg');
+let cur=0,time=0,timer=null,scale=1,foundTotal=0,paused=false,lastWrongVoice=-1,lastCorrectVoice=-1,introPlayed=false;
+let dragging=false,dragMoved=false,dragStartX=0,dragStartY=0,scrollStartX=0,scrollStartY=0;
+$('stageTotal').textContent=stages.length;
+
+const audio={
+  music:safeAudio('assets/audio/music/block_theme.mp3',{loop:true,volume:.22}),
+  sfx:{
+    click:safeAudio('assets/audio/sfx/click.mp3',{volume:.7}),
+    success:safeAudio('assets/audio/sfx/success.mp3',{volume:.78}),
+    miss:safeAudio('assets/audio/sfx/miss.mp3',{volume:.65}),
+    hint:safeAudio('assets/audio/sfx/hint.mp3',{volume:.55}),
+    pause:safeAudio('assets/audio/sfx/pause.mp3',{volume:.55})
+  },
+  correct:[1,2,3].map(n=>safeAudio('assets/audio/voice/correct/'+n+'.mp3',{volume:.82})),
+  wrong:[1,2,3].map(n=>safeAudio('assets/audio/voice/wrong/'+n+'.mp3',{volume:.7}))
+};
+
+function safeAudio(src,opts={}){
+  const a=new Audio(src);
+  a.preload='auto';
+  a.loop=!!opts.loop;
+  a.volume=opts.volume ?? 1;
+  a.addEventListener('error',()=>{a.dataset.missing='1';});
+  return a;
+}
+
+function playAudio(a){
+  if(!a || a.dataset.missing==='1') return;
+  try{
+    a.currentTime=0;
+    const p=a.play();
+    if(p && p.catch) p.catch(()=>{});
+  }catch(e){}
+}
+
+function startMusic(){
+  if(audio.music.dataset.missing==='1') return;
+  audio.music.volume=.22;
+  playAudio(audio.music);
+}
+
+function stopMusic(){
+  audio.music.pause();
+  audio.music.currentTime=0;
+}
+
+function randomVoice(list,lastKey,chance,min){
+  const roll=Math.random();
+  if(roll<min || roll>chance) return lastKey;
+  let idx=Math.floor(Math.random()*list.length);
+  if(list.length>1 && idx===lastKey) idx=(idx+1)%list.length;
+  playAudio(list[idx]);
+  return idx;
+}
+
+function showScreen(id){
+  screens.forEach(s=>s.classList.toggle('active',s.id===id));
+  const playing=id===null;
+  game.style.display=playing?'block':'none';
+  hud.style.display=playing?'flex':'none';
+  controls.style.display=playing?'grid':'none';
+}
+
+function startIntro(){
+  if(introPlayed) return finishIntro();
+  introPlayed=true;
+  $('introStart').style.display='none';
+  $('skipIntro').style.display='block';
+  const video=$('introVideo');
+  video.muted=false;
+  video.volume=1;
+  video.currentTime=0;
+  const p=video.play();
+  if(p && p.catch) p.catch(finishIntro);
+}
+
+function finishIntro(){
+  const video=$('introVideo');
+  video.pause();
+  $('skipIntro').style.display='none';
+  showScreen('menu');
+}
+
+function startGame(stageIndex=0){
+  hideAllScreens();
+  cur=stageIndex;
+  startMusic();
+  loadStage(cur);
+}
+
+function hideAllScreens(){
+  screens.forEach(s=>s.classList.remove('active'));
+  game.style.display='block';
+  hud.style.display='flex';
+  controls.style.display='grid';
+}
+
+function loadStage(i){
+  clearInterval(timer);
+  cur=i;
+  paused=false;
+  foundTotal=0;
+  const s=stages[i];
+  $('stageNumber').textContent=i+1;
+  $('stageLabel').textContent=s.name;
+  $('foundCount').textContent='0';
+  $('targetCount').textContent=s.targets.length;
+  time=s.time;
+  $('timeText').textContent=time;
+  scale=s.scale;
+  clearTargets();
+  bg.onload=()=>{
+    fitScene();
+    renderTargets();
+    centerOn(s.targets[0].x+targetWidth(s.targets[0])/2,s.targets[0].y+targetWidth(s.targets[0])*1.5,.45);
+  };
+  bg.src=s.file;
+  if(bg.complete && bg.naturalWidth) bg.onload();
+  timer=setInterval(tick,1000);
+}
+
+function clearTargets(){
+  scene.querySelectorAll('.reh').forEach(el=>el.remove());
+}
+
+function renderTargets(){
+  clearTargets();
+  const s=stages[cur];
+  s.targets.forEach((target,idx)=>{
+    const img=document.createElement('img');
+    img.className='reh';
+    img.src='assets/characters/reh_fullbody.png';
+    img.alt='Reh Dogg';
+    img.draggable=false;
+    img.dataset.index=idx;
+    img.addEventListener('pointerdown',e=>e.stopPropagation());
+    img.addEventListener('click',findReh);
+    scene.appendChild(img);
+  });
+  positionTargets();
+}
+
+function tick(){
+  if(paused || foundTotal>=stages[cur].targets.length) return;
+  time=Math.max(0,time-1);
+  $('timeText').textContent=time;
+  if(time<=0) gameOver();
+}
+
+function findReh(e){
+  e.stopPropagation();
+  const target=e.currentTarget;
+  if(paused || target.classList.contains('found')) return;
+  target.classList.add('found');
+  foundTotal++;
+  $('foundCount').textContent=String(foundTotal);
+  playAudio(audio.sfx.success);
+  lastCorrectVoice=randomVoice(audio.correct,lastCorrectVoice,.35,.25);
+  if(foundTotal>=stages[cur].targets.length){
+    clearInterval(timer);
+    setTimeout(showStageClear,620);
+  }
+}
+
+function wrongClick(){
+  if(dragMoved || paused || foundTotal>=stages[cur].targets.length) return;
+  time=Math.max(0,time-3);
+  $('timeText').textContent=time;
+  playAudio(audio.sfx.miss);
+  lastWrongVoice=randomVoice(audio.wrong,lastWrongVoice,.20,.15);
+  if(time<=0) gameOver();
+}
+
+function showStageClear(){
+  game.style.display='none';
+  hud.style.display='none';
+  controls.style.display='none';
+  $('clearText').textContent=stages[cur].name+' complete.';
+  showScreen('clear');
+}
+
+function nextStage(){
+  if(cur<stages.length-1){
+    hideAllScreens();
+    loadStage(cur+1);
+  }else{
+    winGame();
+  }
+}
+
+function gameOver(){
+  clearInterval(timer);
+  stopMusic();
+  showScreen('gameOver');
+}
+
+function winGame(){
+  clearInterval(timer);
+  stopMusic();
+  showScreen('win');
+}
+
+function retry(){
+  hideAllScreens();
+  startMusic();
+  loadStage(cur);
+}
+
+function backToMenu(){
+  clearInterval(timer);
+  stopMusic();
+  showScreen('menu');
+}
+
+function zoomBy(v){
+  const oldScale=scale;
+  const beforeX=(view.scrollLeft+view.clientWidth/2)/oldScale;
+  const beforeY=(view.scrollTop+view.clientHeight/2)/oldScale;
+  scale=Math.min(Math.max(getMinScale(),scale+v),3.25);
+  fitScene();
+  view.scrollLeft=Math.max(0,beforeX*scale-view.clientWidth/2);
+  view.scrollTop=Math.max(0,beforeY*scale-view.clientHeight/2);
+}
+
+function getMinScale(){
+  if(!bg.naturalWidth || !bg.naturalHeight) return 1;
+  return Math.max(view.clientWidth/bg.naturalWidth,view.clientHeight/bg.naturalHeight,1);
+}
+
+function fitScene(){
+  if(!bg.naturalWidth || !bg.naturalHeight) return;
+  scale=Math.max(scale,getMinScale());
+  const w=Math.ceil(bg.naturalWidth*scale);
+  const h=Math.ceil(bg.naturalHeight*scale);
+  scene.style.width=w+'px';
+  scene.style.height=h+'px';
+  bg.style.width=w+'px';
+  bg.style.height=h+'px';
+  positionTargets();
+}
+
+function positionTargets(){
+  const s=stages[cur];
+  scene.querySelectorAll('.reh').forEach((el,idx)=>{
+    const target=s.targets[idx];
+    const width=targetWidth(target);
+    el.style.left=(target.x*scale)+'px';
+    el.style.top=(target.y*scale)+'px';
+    el.style.width=(width*scale)+'px';
+  });
+}
+
+function targetWidth(target){
+  return target.sz || stages[cur].size;
+}
+
+function centerOn(x,y,topBias=.5){
+  requestAnimationFrame(()=>{
+    view.scrollLeft=Math.max(0,x*scale-view.clientWidth/2);
+    view.scrollTop=Math.max(0,y*scale-view.clientHeight*topBias);
+  });
+}
+
+function hint(){
+  if(paused || foundTotal>=stages[cur].targets.length) return;
+  playAudio(audio.sfx.hint);
+  const s=stages[cur];
+  const next=s.targets.find((_,idx)=>{
+    const el=scene.querySelector('.reh[data-index="'+idx+'"]');
+    return el && !el.classList.contains('found');
+  }) || s.targets[0];
+  centerOn(next.x+targetWidth(next)/2,next.y+targetWidth(next)*1.5,.45);
+}
+
+function pauseGame(){
+  if(foundTotal>=stages[cur].targets.length || game.style.display!=='block') return;
+  paused=true;
+  playAudio(audio.sfx.pause);
+  showScreen('pause');
+}
+
+function resumeGame(){
+  paused=false;
+  hideAllScreens();
+}
+
+document.body.addEventListener('click',e=>{
+  const action=e.target.dataset.action;
+  if(!action) return;
+  if(['startIntro','play','how','menu','next','retry','playAgain','resume','skipIntro'].includes(action)) playAudio(audio.sfx.click);
+  if(action==='startIntro') startIntro();
+  if(action==='skipIntro') finishIntro();
+  if(action==='play') startGame(0);
+  if(action==='how') showScreen('howTo');
+  if(action==='menu') backToMenu();
+  if(action==='next') nextStage();
+  if(action==='retry') retry();
+  if(action==='playAgain') startGame(0);
+  if(action==='zoomIn') zoomBy(.18);
+  if(action==='zoomOut') zoomBy(-.18);
+  if(action==='hint') hint();
+  if(action==='pause') pauseGame();
+  if(action==='resume') resumeGame();
+});
+
+$('introVideo').addEventListener('ended',finishIntro);
+$('introVideo').addEventListener('error',finishIntro);
+scene.addEventListener('click',wrongClick);
+
+view.addEventListener('wheel',e=>{
+  e.preventDefault();
+  zoomBy(e.deltaY<0 ? .16 : -.16);
+},{passive:false});
+
+view.addEventListener('pointerdown',e=>{
+  if(e.target.closest && e.target.closest('.reh')) return;
+  dragging=true;
+  dragMoved=false;
+  view.classList.add('dragging');
+  dragStartX=e.clientX;
+  dragStartY=e.clientY;
+  scrollStartX=view.scrollLeft;
+  scrollStartY=view.scrollTop;
+  view.setPointerCapture(e.pointerId);
+});
+
+view.addEventListener('pointermove',e=>{
+  if(!dragging) return;
+  if(Math.abs(e.clientX-dragStartX)+Math.abs(e.clientY-dragStartY)>6) dragMoved=true;
+  view.scrollLeft=scrollStartX-(e.clientX-dragStartX);
+  view.scrollTop=scrollStartY-(e.clientY-dragStartY);
+});
+
+view.addEventListener('pointerup',e=>{
+  dragging=false;
+  view.classList.remove('dragging');
+  if(view.hasPointerCapture(e.pointerId)) view.releasePointerCapture(e.pointerId);
+  if(dragMoved) setTimeout(()=>{dragMoved=false;},0);
+});
+
+view.addEventListener('pointercancel',()=>{
+  dragging=false;
+  view.classList.remove('dragging');
+});
+
+window.addEventListener('resize',fitScene);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape' && game.style.display==='block') pauseGame();
+});
+</script>
+</body>
+</html>
